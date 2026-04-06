@@ -138,7 +138,7 @@ function transcribeAPI(
           }
           try {
             const json = JSON.parse(body);
-            resolve({ text: json.text ?? "" });
+            resolve({ text: cleanWhisperOutput(json.text ?? "") });
           } catch (e) {
             reject(new Error(`Failed to parse response: ${body}`));
           }
@@ -201,8 +201,7 @@ function transcribeLocal(
         reject(new Error(`Local whisper failed (code ${code}): ${stderr.slice(-500)}`));
         return;
       }
-      // whisper.cpp outputs text to stdout, sometimes with leading whitespace
-      const text = stdout.trim();
+      const text = cleanWhisperOutput(stdout);
       resolve({ text });
     });
 
@@ -210,4 +209,22 @@ function transcribeLocal(
       reject(new Error(`Failed to run local whisper at "${whisperPath}": ${err.message}`));
     });
   });
+}
+
+/**
+ * Strip whisper.cpp artefacts: [BLANK_AUDIO], (silence), [inaudible], etc.
+ * Returns empty string if nothing meaningful remains.
+ */
+function cleanWhisperOutput(raw: string): string {
+  return raw
+    .replace(/\[BLANK_AUDIO\]/gi, "")
+    .replace(/\[SILENCE\]/gi, "")
+    .replace(/\[INAUDIBLE\]/gi, "")
+    .replace(/\(blank audio\)/gi, "")
+    .replace(/\(silence\)/gi, "")
+    .replace(/\(inaudible\)/gi, "")
+    .replace(/\[MUSIC\]/gi, "")
+    .replace(/\[NOISE\]/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }

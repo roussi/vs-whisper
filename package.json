@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "aroussi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aroussi/vs-whisper"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -18,6 +22,7 @@
     "speech-to-text",
     "transcription"
   ],
+  "icon": "icon.png",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {

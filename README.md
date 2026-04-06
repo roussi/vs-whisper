@@ -1,6 +1,12 @@
-# VS Whisper
+<p align="center">
+  <img src="https://raw.githubusercontent.com/aroussi/vs-whisper/main/icon.svg" width="128" height="128" alt="VS Whisper logo">
+</p>
 
-**Voice-to-text dictation for VS Code. Free, local, and private.**
+<h1 align="center">VS Whisper</h1>
+
+<p align="center">
+  <strong>Voice-to-text dictation for VS Code. Free, local, fast and private.</strong>
+</p>
 
 Dictate code, comments, commit messages, and prompts — right inside your editor. Powered by [whisper.cpp](https://github.com/ggerganov/whisper.cpp), runs entirely on your machine. No API key required.
 
