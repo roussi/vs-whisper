@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/aroussi/vs-whisper/main/icon.svg" width="128" height="128" alt="VS Whisper logo">
+  <img src="https://raw.githubusercontent.com/roussi/vs-whisper/main/icon.svg" width="128" height="128" alt="VS Whisper logo">
 </p>
 
 <h1 align="center">VS Whisper</h1>
@@ -60,7 +60,7 @@ sudo apt install sox
 
 ```bash
 # From source
-git clone https://github.com/aroussi/vs-whisper.git
+git clone https://github.com/roussi/vs-whisper.git
 cd vs-whisper
 npm install && npm run compile
 npx @vscode/vsce package
@@ -213,7 +213,7 @@ Contributions are welcome! Some ideas:
 ### Development
 
 ```bash
-git clone https://github.com/aroussi/vs-whisper.git
+git clone https://github.com/roussi/vs-whisper.git
 cd vs-whisper
 npm install
 npm run watch    # compile on change
