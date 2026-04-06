@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/roussi/vs-whisper/main/icon.svg" width="128" height="128" alt="VS Whisper logo">
+  <img src="https://raw.githubusercontent.com/roussi/vs-whisper/main/icon.png" width="128" height="128" alt="VS Whisper logo">
 </p>
 
 <h1 align="center">VS Whisper</h1>

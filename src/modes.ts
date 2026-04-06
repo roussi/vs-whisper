@@ -22,67 +22,98 @@ export function postProcess(text: string, mode: DictationMode): string {
 }
 
 /**
+ * Spoken punctuation → symbol mappings.
+ * Order matters: longer phrases must come before shorter ones to avoid partial matches.
+ * Patterns use loose matching to handle Whisper misspellings (paran/paren, etc.)
+ * and surrounding punctuation (.,:; etc.) that Whisper inserts.
+ */
+const PUNCTUATION_MAP: Array<[RegExp, string]> = [
+  // Multi-character operators (must come before single-char ones)
+  [/\.?\s*triple equals\s*\.?/gi, "==="],
+  [/\.?\s*strict equals\s*\.?/gi, "==="],
+  [/\.?\s*double equals\s*\.?/gi, "=="],
+  [/\.?\s*not equals?\s*\.?/gi, "!="],
+  [/\.?\s*bang equals\s*\.?/gi, "!="],
+  [/\.?\s*fat arrow\s*\.?/gi, " => "],
+  [/\.?\s*arrow\s*\.?/gi, " => "],
+
+  // Parentheses — handle misspellings: paren, paran, parin, parren, parran
+  [/\.?\s*open\s+par[ae][ni](?:thesis)?\.?\s*/gi, "("],
+  [/\.?\s*left\s+par[ae][ni](?:thesis)?\.?\s*/gi, "("],
+  [/\.?\s*close\s+par[ae][ni](?:thesis)?\.?\s*/gi, ")"],
+  [/\.?\s*right\s+par[ae][ni](?:thesis)?\.?\s*/gi, ")"],
+
+  // Brackets
+  [/\.?\s*open\s+bracket\.?\s*/gi, "["],
+  [/\.?\s*left\s+bracket\.?\s*/gi, "["],
+  [/\.?\s*close\s+bracket\.?\s*/gi, "]"],
+  [/\.?\s*right\s+bracket\.?\s*/gi, "]"],
+
+  // Braces
+  [/\.?\s*open\s+(?:brace|curly)\.?\s*/gi, "{"],
+  [/\.?\s*left\s+(?:brace|curly)\.?\s*/gi, "{"],
+  [/\.?\s*close\s+(?:brace|curly)\.?\s*/gi, "}"],
+  [/\.?\s*right\s+(?:brace|curly)\.?\s*/gi, "}"],
+
+  // Single punctuation
+  [/\.?\s*(?:period|full stop)\.?\s*/gi, "."],
+  [/\.?\s*comma\.?\s*/gi, ", "],
+  [/\.?\s*(?:semicolon|semi\s*colon)\.?\s*/gi, ";"],
+  [/\.?\s*colon\.?\s*/gi, ":"],
+
+  // Operators
+  [/\.?\s*(?:equals|equal sign)\.?\s*/gi, " = "],
+  [/\.?\s*(?:dash|hyphen|minus)\.?\s*/gi, "-"],
+  [/\.?\s*plus\.?\s*/gi, " + "],
+  [/\.?\s*(?:asterisk|star|times)\.?\s*/gi, "*"],
+  [/\.?\s*(?:forward\s+slash|slash)\.?\s*/gi, "/"],
+  [/\.?\s*(?:backslash|back\s*slash)\.?\s*/gi, "\\"],
+  [/\.?\s*pipe\.?\s*/gi, "|"],
+  [/\.?\s*(?:ampersand|and sign)\.?\s*/gi, "&"],
+  [/\.?\s*(?:exclamation|bang)\.?\s*/gi, "!"],
+  [/\.?\s*question\s+mark\.?\s*/gi, "?"],
+  [/\.?\s*(?:at sign|at symbol)\.?\s*/gi, "@"],
+  [/\.?\s*(?:hash|pound sign|hashtag)\.?\s*/gi, "#"],
+  [/\.?\s*dollar sign\.?\s*/gi, "$"],
+  [/\.?\s*percent\.?\s*/gi, "%"],
+  [/\.?\s*(?:caret|hat)\.?\s*/gi, "^"],
+  [/\.?\s*tilde\.?\s*/gi, "~"],
+  [/\.?\s*(?:backtick|back\s*tick)\.?\s*/gi, "`"],
+  [/\.?\s*underscore\.?\s*/gi, "_"],
+  [/\.?\s*new\s+line\.?\s*/gi, "\n"],
+];
+
+/**
  * Code mode: clean up filler words, normalize punctuation for code context.
  */
 function cleanForCode(text: string): string {
   let result = text;
 
   // Remove common filler words
-  const fillers = [
+  result = result.replace(
     /\b(um+|uh+|ah+|eh+|er+|like|you know|basically|actually|so yeah|i mean)\b/gi,
-  ];
-  for (const filler of fillers) {
-    result = result.replace(filler, "");
+    ""
+  );
+
+  // Apply spoken punctuation → symbol replacements
+  for (const [pattern, replacement] of PUNCTUATION_MAP) {
+    result = result.replace(pattern, replacement);
   }
 
-  // Normalize spoken punctuation to symbols
-  result = result
-    .replace(/\b(period|full stop)\b/gi, ".")
-    .replace(/\bcomma\b/gi, ",")
-    .replace(/\b(semicolon|semi colon)\b/gi, ";")
-    .replace(/\bcolon\b/gi, ":")
-    .replace(/\b(open paren|left paren|open parenthesis)\b/gi, "(")
-    .replace(/\b(close paren|right paren|close parenthesis)\b/gi, ")")
-    .replace(/\b(open bracket|left bracket)\b/gi, "[")
-    .replace(/\b(close bracket|right bracket)\b/gi, "]")
-    .replace(/\b(open brace|left brace|open curly)\b/gi, "{")
-    .replace(/\b(close brace|right brace|close curly)\b/gi, "}")
-    .replace(/\b(equals|equal sign)\b/gi, "=")
-    .replace(/\b(double equals)\b/gi, "==")
-    .replace(/\b(triple equals|strict equals)\b/gi, "===")
-    .replace(/\b(not equals?|bang equals)\b/gi, "!=")
-    .replace(/\b(arrow|fat arrow)\b/gi, "=>")
-    .replace(/\b(dash|hyphen|minus)\b/gi, "-")
-    .replace(/\b(plus)\b/gi, "+")
-    .replace(/\b(asterisk|star|times)\b/gi, "*")
-    .replace(/\b(forward slash|slash)\b/gi, "/")
-    .replace(/\b(backslash|back slash)\b/gi, "\\")
-    .replace(/\b(pipe)\b/gi, "|")
-    .replace(/\b(ampersand|and sign)\b/gi, "&")
-    .replace(/\b(exclamation|bang)\b/gi, "!")
-    .replace(/\b(question mark)\b/gi, "?")
-    .replace(/\b(at sign|at symbol)\b/gi, "@")
-    .replace(/\b(hash|pound sign|hashtag)\b/gi, "#")
-    .replace(/\b(dollar sign)\b/gi, "$")
-    .replace(/\b(percent)\b/gi, "%")
-    .replace(/\b(caret|hat)\b/gi, "^")
-    .replace(/\b(tilde)\b/gi, "~")
-    .replace(/\b(backtick|back tick)\b/gi, "`")
-    .replace(/\b(underscore)\b/gi, "_")
-    .replace(/\bnew line\b/gi, "\n")
-    .replace(/\btab\b/gi, "\t");
+  // Handle "tab" separately (common word, only replace when standalone)
+  result = result.replace(/(?:^|\s)tab(?:\s|$)/gi, "\t");
 
-  // Spoken code keywords
+  // Normalize code keywords to lowercase
   result = result
-    .replace(/\b(string)\b/gi, "string")
-    .replace(/\b(number)\b/gi, "number")
-    .replace(/\b(boolean)\b/gi, "boolean")
-    .replace(/\b(null)\b/gi, "null")
-    .replace(/\b(undefined)\b/gi, "undefined")
-    .replace(/\b(true)\b/gi, "true")
-    .replace(/\b(false)\b/gi, "false");
+    .replace(/\bstring\b/gi, "string")
+    .replace(/\bnumber\b/gi, "number")
+    .replace(/\bboolean\b/gi, "boolean")
+    .replace(/\bnull\b/gi, "null")
+    .replace(/\bundefined\b/gi, "undefined")
+    .replace(/\btrue\b/gi, "true")
+    .replace(/\bfalse\b/gi, "false");
 
-  // Clean up extra spaces
+  // Clean up extra spaces and trim
   result = result.replace(/\s{2,}/g, " ").trim();
 
   return result;
@@ -95,12 +126,10 @@ function formatAsCommand(text: string): string {
   let result = text;
 
   // Remove filler words
-  const fillers = [
+  result = result.replace(
     /\b(um+|uh+|ah+|eh+|er+|like|you know|basically|actually|so yeah|i mean)\b/gi,
-  ];
-  for (const filler of fillers) {
-    result = result.replace(filler, "");
-  }
+    ""
+  );
 
   // Clean up
   result = result.replace(/\s{2,}/g, " ").trim();
