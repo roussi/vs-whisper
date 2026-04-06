@@ -1,0 +1,142 @@
+{
+  "name": "vs-whisper",
+  "displayName": "VS Whisper",
+  "description": "Voice-to-text dictation for VS Code using OpenAI Whisper — like superwhisper.com but built into your editor",
+  "version": "0.1.0",
+  "publisher": "aroussi",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "voice",
+    "dictation",
+    "whisper",
+    "speech-to-text",
+    "transcription"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vs-whisper.toggleRecording",
+        "title": "VS Whisper: Toggle Recording",
+        "icon": "$(mic)"
+      },
+      {
+        "command": "vs-whisper.setMode",
+        "title": "VS Whisper: Set Dictation Mode"
+      },
+      {
+        "command": "vs-whisper.selectBackend",
+        "title": "VS Whisper: Select Transcription Backend"
+      },
+      {
+        "command": "vs-whisper.setupLocal",
+        "title": "VS Whisper: Setup Local Transcription (free)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "vs-whisper.toggleRecording",
+        "key": "ctrl+shift+;",
+        "mac": "cmd+shift+;"
+      }
+    ],
+    "configuration": {
+      "title": "VS Whisper",
+      "properties": {
+        "vsWhisper.backend": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "groq",
+            "local"
+          ],
+          "default": "local",
+          "description": "Transcription backend (local = free, no API key needed)"
+        },
+        "vsWhisper.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API key for Whisper transcription"
+        },
+        "vsWhisper.groqApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Groq API key for Whisper transcription"
+        },
+        "vsWhisper.localWhisperPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to whisper binary (leave empty to use auto-installed whisper.cpp)"
+        },
+        "vsWhisper.localWhisperModel": {
+          "type": "string",
+          "default": "base",
+          "description": "Model to use for local whisper (tiny, base, small, medium, large)"
+        },
+        "vsWhisper.language": {
+          "type": "string",
+          "default": "en",
+          "description": "Language code for transcription (e.g., en, fr, de, es)"
+        },
+        "vsWhisper.mode": {
+          "type": "string",
+          "enum": [
+            "dictate",
+            "code",
+            "command"
+          ],
+          "default": "dictate",
+          "enumDescriptions": [
+            "Raw transcription inserted as-is",
+            "Cleaned up for code context (no filler words, proper casing)",
+            "Formats speech as a coding instruction/prompt"
+          ],
+          "description": "Dictation mode"
+        },
+        "vsWhisper.recordingTool": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "sox",
+            "ffmpeg"
+          ],
+          "default": "auto",
+          "description": "Audio recording tool (auto-detects best available)"
+        },
+        "vsWhisper.insertAtCursor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Insert transcribed text at cursor position (vs replacing selection)"
+        },
+        "vsWhisper.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for recording start/stop"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0"
+  }
+}
