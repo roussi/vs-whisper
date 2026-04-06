@@ -4,6 +4,7 @@ import { transcribe, TranscriberConfig, TranscriptionBackend } from "./transcrib
 import { postProcess, DictationMode } from "./modes";
 import { setupLocal, isLocalReady, getLocalPaths } from "./localSetup";
 import { unlinkSync } from "fs";
+import { exec } from "child_process";
 
 let recorder: Recorder | null = null;
 let statusBarItem: vscode.StatusBarItem;
@@ -248,22 +249,47 @@ async function promptForApiKey(backend: string, settingKey: string): Promise<voi
 }
 
 async function insertText(text: string): Promise<void> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    await vscode.env.clipboard.writeText(text);
-    vscode.window.setStatusBarMessage("$(clippy) VS Whisper: Copied to clipboard", 2000);
-    return;
+  // Save current clipboard, write text, simulate paste, restore clipboard.
+  // This works everywhere: editors, terminals, chat panels, search boxes, etc.
+  const previousClipboard = await vscode.env.clipboard.readText();
+  await vscode.env.clipboard.writeText(text);
+
+  try {
+    await simulatePaste();
+  } finally {
+    // Restore original clipboard after a short delay to let paste complete
+    setTimeout(async () => {
+      await vscode.env.clipboard.writeText(previousClipboard);
+    }, 200);
   }
+}
 
-  const config = vscode.workspace.getConfiguration("vsWhisper");
-  const insertAtCursor = config.get<boolean>("insertAtCursor", true);
+function simulatePaste(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let cmd: string;
 
-  await editor.edit((editBuilder) => {
-    if (insertAtCursor && editor.selection.isEmpty) {
-      editBuilder.insert(editor.selection.active, text);
-    } else {
-      editBuilder.replace(editor.selection, text);
+    switch (process.platform) {
+      case "darwin":
+        cmd = `osascript -e 'tell application "System Events" to keystroke "v" using command down'`;
+        break;
+      case "linux":
+        cmd = `xdotool key ctrl+v`;
+        break;
+      case "win32":
+        cmd = `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')"`;
+        break;
+      default:
+        reject(new Error(`Unsupported platform: ${process.platform}`));
+        return;
     }
+
+    exec(cmd, (err) => {
+      if (err) {
+        reject(new Error(`Paste simulation failed: ${err.message}`));
+      } else {
+        resolve();
+      }
+    });
   });
 }
 
