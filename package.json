@@ -2,7 +2,7 @@
   "name": "vs-whisper",
   "displayName": "VS Whisper",
   "description": "Voice-to-text dictation for VS Code using OpenAI Whisper — like superwhisper.com but built into your editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "aroussi",
   "license": "MIT",
   "repository": {

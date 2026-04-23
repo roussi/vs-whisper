@@ -16,6 +16,8 @@ export class Recorder {
   private outputPath: string = "";
   private readonly sampleRate: number;
   private readonly resolvedTool: "sox" | "ffmpeg";
+  private processExited: boolean = false;
+  private earlyExitCode: number | null = null;
 
   constructor(config: RecorderConfig) {
     this.sampleRate = config.sampleRate ?? 16000;
@@ -30,6 +32,9 @@ export class Recorder {
     if (this.process) {
       throw new Error("Already recording");
     }
+
+    this.processExited = false;
+    this.earlyExitCode = null;
 
     const dir = join(tmpdir(), "vs-whisper");
     if (!existsSync(dir)) {
@@ -61,7 +66,13 @@ export class Recorder {
 
     this.process.on("error", (err) => {
       console.error(`[vs-whisper] Recording process error: ${err.message}`);
+      this.processExited = true;
       this.process = null;
+    });
+
+    this.process.on("exit", (code) => {
+      this.processExited = true;
+      this.earlyExitCode = code;
     });
 
     return this.outputPath;
@@ -77,6 +88,21 @@ export class Recorder {
       const path = this.outputPath;
       const proc = this.process;
 
+      // Process already exited before stop() was called (crash, no mic, permission denied)
+      if (this.processExited) {
+        this.process = null;
+        const code = this.earlyExitCode;
+        if (code !== 0 && code !== null) {
+          reject(new Error(
+            `Recording failed (${this.resolvedTool} exited with code ${code}). ` +
+            "Check that your microphone is connected and accessible."
+          ));
+        } else {
+          resolve(path);
+        }
+        return;
+      }
+
       proc.on("close", () => {
         this.process = null;
         resolve(path);
@@ -89,7 +115,13 @@ export class Recorder {
 
       // sox/rec responds to SIGINT, ffmpeg responds to 'q' on stdin or SIGINT
       if (proc.pid) {
-        process.kill(proc.pid, "SIGINT");
+        try {
+          process.kill(proc.pid, "SIGINT");
+        } catch {
+          // Process already dead — resolve with whatever file we have
+          this.process = null;
+          resolve(path);
+        }
       }
     });
   }
